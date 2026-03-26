@@ -89,7 +89,6 @@ export default function AddProductModal({ open, onClose, onSave, initialBarcode 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) {
-      toast.error("Please fix the errors below");
       return;
     }
     const supplier: Supplier = {
@@ -112,9 +111,24 @@ export default function AddProductModal({ open, onClose, onSave, initialBarcode 
       expiry_date: notExpiring ? undefined : form.expiry_date,
       not_expiring: notExpiring,
     };
-    onSave(product);
-    resetForm();
-    toast.success(`${product.name} added to inventory`);
+    try {
+      onSave(product);
+      resetForm();
+      toast.success(`${product.name} added to inventory`);
+    } catch {
+      toast.error("Could not save product. Try a smaller image or check required fields.");
+    }
+  };
+
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    const target = e.target as HTMLElement;
+    const isTextArea = target instanceof HTMLTextAreaElement;
+    const isButton = target instanceof HTMLButtonElement;
+
+    // Prevent scanner/newline Enter from accidentally submitting the whole form.
+    if (e.key === "Enter" && !isTextArea && !isButton) {
+      e.preventDefault();
+    }
   };
 
   const handleClose = () => {
@@ -136,7 +150,7 @@ export default function AddProductModal({ open, onClose, onSave, initialBarcode 
           <DialogDescription>Complete all fields to add this product to your inventory.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-6">
+        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="px-6 pb-6 space-y-6">
           {/* Product Info */}
           <Card className="border shadow-none">
             <CardHeader className="pb-3 pt-4 px-4">
