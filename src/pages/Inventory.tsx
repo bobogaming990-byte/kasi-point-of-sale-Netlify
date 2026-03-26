@@ -97,7 +97,7 @@ export default function Inventory() {
               <AlertTriangle className="w-3 h-3" /> {expiredCount} expired
             </Badge>
           )}
-          {isAdmin && (
+          {isAdmin && !store.isTrialExpired() && (
             <Button onClick={() => { setPendingBarcode(""); setShowAddModal(true); }}>
               <Plus className="w-4 h-4 mr-1" /> Add Product
             </Button>

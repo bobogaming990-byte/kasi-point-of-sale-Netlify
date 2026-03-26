@@ -115,6 +115,35 @@ export const store = {
     localStorage.removeItem('kasi_auth');
   },
 
+  // Trial management
+  getTrialStart: (): string => {
+    let start = localStorage.getItem('kasi_trial_start');
+    if (!start) {
+      start = new Date().toISOString();
+      localStorage.setItem('kasi_trial_start', start);
+    }
+    return start;
+  },
+
+  getTrialDaysLeft: (): number => {
+    const start = new Date(store.getTrialStart());
+    const now = new Date();
+    const elapsed = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(0, 90 - elapsed);
+  },
+
+  isTrialExpired: (): boolean => {
+    return store.getTrialDaysLeft() <= 0 && !store.isSubscribed();
+  },
+
+  isSubscribed: (): boolean => {
+    return load('subscribed', false);
+  },
+
+  setSubscribed: (val: boolean) => {
+    save('subscribed', val);
+  },
+
   addSale: (items: CartItem[], total: number, cashier: string): number => {
     const sales = load<Sale[]>('sales', defaultSales);
     const id = sales.length > 0 ? Math.max(...sales.map(s => s.id)) + 1 : 1;

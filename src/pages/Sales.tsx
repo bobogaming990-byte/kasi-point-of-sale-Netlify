@@ -108,6 +108,14 @@ export default function Sales() {
 
   const handleCheckout = () => {
     if (cart.length === 0) return;
+    // Trial enforcement: max 5 sales/day after trial expires
+    if (store.isTrialExpired()) {
+      const todaySales = store.getSales().filter(s => s.date === new Date().toISOString().slice(0, 10));
+      if (todaySales.length >= 5) {
+        toast.error("Trial expired — max 5 sales/day. Please subscribe to continue.");
+        return;
+      }
+    }
     const saleId = store.addSale(cart, total, username);
     toast.success(`Sale #${saleId} completed — R ${total.toFixed(2)}`);
     setCart([]);
