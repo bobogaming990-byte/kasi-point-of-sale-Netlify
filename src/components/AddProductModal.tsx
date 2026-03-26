@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Product, Supplier } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Camera, Package, Truck, CalendarDays, X, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -41,6 +41,13 @@ export default function AddProductModal({ open, onClose, onSave, initialBarcode 
     supplier_email: "",
     supplier_address: "",
   });
+
+  // Sync barcode when modal opens with a new initialBarcode
+  useEffect(() => {
+    if (open) {
+      setForm(prev => ({ ...prev, barcode: initialBarcode }));
+    }
+  }, [open, initialBarcode]);
 
   const resetForm = () => {
     setForm({ name: "", description: "", purchase_price: "", price: "", barcode: initialBarcode, stock_received: "", expiry_date: "", supplier_name: "", supplier_phone: "", supplier_email: "", supplier_address: "" });
@@ -126,7 +133,7 @@ export default function AddProductModal({ open, onClose, onSave, initialBarcode 
             <Package className="w-5 h-5 text-primary" />
             Register New Product
           </DialogTitle>
-          <p className="text-sm text-muted-foreground">Complete all fields to add this product to your inventory.</p>
+          <DialogDescription>Complete all fields to add this product to your inventory.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-6">
