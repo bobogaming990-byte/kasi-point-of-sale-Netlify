@@ -18,6 +18,19 @@ export default function Sales() {
     p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)
   );
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && search.trim()) {
+      const match = products.find(p => p.barcode === search.trim());
+      if (match) {
+        addToCart(match);
+        setSearch("");
+        toast.success(`Added ${match.name}`);
+      } else {
+        toast.error("Product not found for barcode: " + search.trim());
+      }
+    }
+  };
+
   const addToCart = (product: Product) => {
     setCart(prev => {
       const existing = prev.find(c => c.id === product.id);
@@ -63,6 +76,8 @@ export default function Sales() {
               className="pl-10"
               value={search}
               onChange={e => setSearch(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              autoFocus
             />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto flex-1 pr-1">
