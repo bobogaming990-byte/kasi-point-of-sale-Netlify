@@ -76,6 +76,8 @@ export default function Sales() {
               className="pl-10"
               value={search}
               onChange={e => setSearch(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              autoFocus
             />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto flex-1 pr-1">
