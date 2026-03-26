@@ -43,14 +43,14 @@ export interface Sale {
 
 // Default data
 const defaultProducts: Product[] = [
-  { id: 1, name: "Coca-Cola 2L", price: 22.99, stock: 48, supplier: "SAB", barcode: "6001134000012", expiry_date: "2026-12-01" },
-  { id: 2, name: "White Star Maize 2.5kg", price: 39.99, stock: 30, supplier: "Pioneer Foods", barcode: "6001240000015", expiry_date: "2027-06-15" },
-  { id: 3, name: "Sunlight Soap Bar", price: 14.50, stock: 60, supplier: "Unilever", barcode: "6001087000018", expiry_date: "2028-01-01" },
-  { id: 4, name: "Albany Bread", price: 18.99, stock: 20, supplier: "Tiger Brands", barcode: "6001070000011", expiry_date: "2026-04-05" },
-  { id: 5, name: "Lucky Star Pilchards", price: 29.99, stock: 45, supplier: "Oceana Group", barcode: "6001056000014", expiry_date: "2028-03-20" },
-  { id: 6, name: "Simba Chips 125g", price: 16.99, stock: 55, supplier: "PepsiCo", barcode: "6001134500019", expiry_date: "2026-09-10" },
-  { id: 7, name: "Omo Washing Powder 2kg", price: 89.99, stock: 15, supplier: "Unilever", barcode: "6001087500012", expiry_date: "2028-06-01" },
-  { id: 8, name: "Five Roses Tea 100s", price: 44.99, stock: 25, supplier: "AVI", barcode: "6001240500010", expiry_date: "2027-12-01" },
+  { id: 1, name: "Coca-Cola 2L", description: "Carbonated soft drink 2 litre", purchase_price: 16.00, price: 22.99, stock: 48, stock_received: 50, supplier: { name: "SAB", phone: "011 881 8111", email: "orders@sab.co.za", address: "Sandton, Johannesburg" }, barcode: "6001134000012", expiry_date: "2026-12-01", not_expiring: false },
+  { id: 2, name: "White Star Maize 2.5kg", description: "Super maize meal", purchase_price: 28.00, price: 39.99, stock: 30, stock_received: 40, supplier: { name: "Pioneer Foods", phone: "021 807 1100", email: "info@pioneerfoods.co.za", address: "Paarl, Western Cape" }, barcode: "6001240000015", expiry_date: "2027-06-15", not_expiring: false },
+  { id: 3, name: "Sunlight Soap Bar", description: "Laundry bar soap", purchase_price: 9.00, price: 14.50, stock: 60, stock_received: 60, supplier: { name: "Unilever", phone: "011 570 7000", email: "info@unilever.co.za", address: "La Lucia, Durban" }, barcode: "6001087000018", not_expiring: true },
+  { id: 4, name: "Albany Bread", description: "White sliced bread", purchase_price: 13.00, price: 18.99, stock: 20, stock_received: 25, supplier: { name: "Tiger Brands", phone: "011 840 4000", email: "info@tigerbrands.com", address: "Bryanston, Johannesburg" }, barcode: "6001070000011", expiry_date: "2026-04-05", not_expiring: false },
+  { id: 5, name: "Lucky Star Pilchards", description: "Pilchards in tomato sauce 400g", purchase_price: 20.00, price: 29.99, stock: 45, stock_received: 50, supplier: { name: "Oceana Group", phone: "021 410 1400", email: "info@oceana.co.za", address: "Cape Town" }, barcode: "6001056000014", expiry_date: "2028-03-20", not_expiring: false },
+  { id: 6, name: "Simba Chips 125g", description: "Potato chips assorted flavours", purchase_price: 11.00, price: 16.99, stock: 55, stock_received: 60, supplier: { name: "PepsiCo", phone: "011 884 0600", email: "info@pepsico.co.za", address: "Sandton, Johannesburg" }, barcode: "6001134500019", expiry_date: "2026-09-10", not_expiring: false },
+  { id: 7, name: "Omo Washing Powder 2kg", description: "Auto washing powder", purchase_price: 62.00, price: 89.99, stock: 15, stock_received: 20, supplier: { name: "Unilever", phone: "011 570 7000", email: "info@unilever.co.za", address: "La Lucia, Durban" }, barcode: "6001087500012", not_expiring: true },
+  { id: 8, name: "Five Roses Tea 100s", description: "Tagless tea bags 100 pack", purchase_price: 32.00, price: 44.99, stock: 25, stock_received: 30, supplier: { name: "AVI", phone: "011 502 2600", email: "info@avi.co.za", address: "Bryanston, Johannesburg" }, barcode: "6001240500010", expiry_date: "2027-12-01", not_expiring: false },
 ];
 
 const defaultUsers: User[] = [
