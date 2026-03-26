@@ -47,13 +47,25 @@ export default function Inventory() {
   };
 
   const handleSaveProduct = (product: Omit<Product, "id">) => {
-    const all = store.getProducts();
-    const id = all.length > 0 ? Math.max(...all.map(p => p.id)) + 1 : 1;
-    all.push({ id, ...product });
-    store.setProducts(all);
-    setShowAddModal(false);
-    setPendingBarcode("");
-    refresh();
+    try {
+      const all = store.getProducts();
+      const barcodeExists = all.some(p => p.barcode === product.barcode);
+
+      if (barcodeExists) {
+        toast.error("This barcode already exists in inventory");
+        return;
+      }
+
+      const id = all.length > 0 ? Math.max(...all.map(p => p.id)) + 1 : 1;
+      all.push({ id, ...product });
+      store.setProducts(all);
+      setShowAddModal(false);
+      setPendingBarcode("");
+      refresh();
+      toast.success("Product saved");
+    } catch {
+      toast.error("Could not save product. If image is large, try a smaller file.");
+    }
   };
 
   const handleDelete = (id: number) => {
