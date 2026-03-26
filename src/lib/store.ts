@@ -7,15 +7,26 @@ export interface User {
   created_at: string;
 }
 
+export interface Supplier {
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+}
+
 export interface Product {
   id: number;
   name: string;
-  price: number;
+  description: string;
+  purchase_price: number;
+  price: number; // selling price
   stock: number;
-  supplier: string;
+  stock_received: number;
+  supplier: Supplier;
   barcode: string;
   image?: string;
   expiry_date?: string;
+  not_expiring: boolean;
 }
 
 export interface CartItem extends Product {
