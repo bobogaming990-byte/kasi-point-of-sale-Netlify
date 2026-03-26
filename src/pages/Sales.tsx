@@ -1,18 +1,26 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { store, Product, CartItem } from "@/lib/store";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Check } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Check, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Sales() {
-  const { username } = useAuth();
+  const { username, role } = useAuth();
   const [products] = useState(store.getProducts());
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [vat, setVat] = useState(false);
+
+  // Admin auth dialog state
+  const [showAdminAuth, setShowAdminAuth] = useState(false);
+  const [adminUser, setAdminUser] = useState("");
+  const [adminPass, setAdminPass] = useState("");
+  const [authError, setAuthError] = useState("");
+  const pendingActionRef = useRef<(() => void) | null>(null);
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)
@@ -41,16 +49,58 @@ export default function Sales() {
     });
   };
 
+  const guardedAction = (action: () => void) => {
+    if (role === "admin") {
+      action();
+      return;
+    }
+    pendingActionRef.current = action;
+    setAdminUser("");
+    setAdminPass("");
+    setAuthError("");
+    setShowAdminAuth(true);
+  };
+
+  const handleAdminAuth = () => {
+    const result = store.login(adminUser, adminPass);
+    if (result.success && result.role === "admin") {
+      // Restore the original session auth
+      store.setAuth({ username, role });
+      pendingActionRef.current?.();
+      pendingActionRef.current = null;
+      setShowAdminAuth(false);
+      toast.success("Admin authorized — item removed");
+    } else {
+      // Restore the original session auth in case login overwrote it
+      store.setAuth({ username, role });
+      setAuthError("Invalid admin credentials");
+    }
+  };
+
   const updateQty = (id: number, delta: number) => {
+    if (delta < 0) {
+      const item = cart.find(c => c.id === id);
+      if (item && item.quantity <= 1) {
+        guardedAction(() => setCart(prev => prev.filter(c => c.id !== id)));
+        return;
+      }
+      guardedAction(() =>
+        setCart(prev => prev.map(c => {
+          if (c.id !== id) return c;
+          const newQty = c.quantity + delta;
+          return newQty > 0 ? { ...c, quantity: newQty } : c;
+        }))
+      );
+      return;
+    }
     setCart(prev => prev.map(c => {
       if (c.id !== id) return c;
-      const newQty = c.quantity + delta;
-      return newQty > 0 ? { ...c, quantity: newQty } : c;
+      return { ...c, quantity: c.quantity + 1 };
     }));
   };
 
   const removeFromCart = (id: number) => {
-    setCart(prev => prev.filter(c => c.id !== id));
+    guardedAction(() => setCart(prev => prev.filter(c => c.id !== id)));
   };
 
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.price * i.quantity, 0), [cart]);
@@ -157,6 +207,36 @@ export default function Sales() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Admin Authorization Dialog */}
+      <Dialog open={showAdminAuth} onOpenChange={(open) => { if (!open) { pendingActionRef.current = null; setShowAdminAuth(false); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-destructive" />
+              Admin Authorization Required
+            </DialogTitle>
+            <DialogDescription>
+              Enter admin credentials to remove or reduce items from the cart.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={e => { e.preventDefault(); handleAdminAuth(); }} className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Admin Username</label>
+              <Input value={adminUser} onChange={e => setAdminUser(e.target.value)} placeholder="Username" autoFocus />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Password</label>
+              <Input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="Password" />
+            </div>
+            {authError && <p className="text-sm text-destructive font-medium">{authError}</p>}
+            <div className="flex gap-3 justify-end pt-2">
+              <Button type="button" variant="outline" onClick={() => { pendingActionRef.current = null; setShowAdminAuth(false); }}>Cancel</Button>
+              <Button type="submit">Authorize</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
