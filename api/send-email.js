@@ -348,6 +348,175 @@ function getEmailContent(template, data) {
         ${ctaButton('View Full Report', (data?.appUrl || 'https://kasi-point-of-sale.vercel.app') + '/accounting')}
       `),
     },
+
+    // ─── GRACE PERIOD WARNING ────────────────────────────────────
+    'grace-period': {
+      subject: `⚠️ Payment Overdue — ${data?.graceDaysLeft || '5'} Days Until Suspension`,
+      html: baseLayout(`
+        <h1 style="color: #1a1a2e; font-size: 28px; margin: 0 0 8px;">
+          Payment Overdue ⚠️
+        </h1>
+        <p style="color: #666; font-size: 16px; margin: 0 0 32px;">
+          Your subscription payment failed and you have <strong>${data?.graceDaysLeft || '5'} days</strong> before your account is suspended.
+        </p>
+
+        <div style="background: #fefce8; border-left: 4px solid #eab308; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+          <p style="margin: 0; font-weight: 600; color: #854d0e;">Grace Period Active</p>
+          <p style="margin: 8px 0 0; color: #92400e; font-size: 14px;">
+            Business: <strong>${data?.businessName || 'Your Store'}</strong><br/>
+            Days Remaining: <strong>${data?.graceDaysLeft || '5'} days</strong><br/>
+            Grace Period Ends: <strong>${data?.graceEndDate || '—'}</strong>
+          </p>
+        </div>
+
+        <div style="background: #fff7ed; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+          <p style="margin: 0 0 8px; font-weight: 600; color: #9a3412; font-size: 15px;">What happens if you don't pay?</p>
+          <ul style="color: #c2410c; font-size: 14px; line-height: 1.8; padding-left: 20px; margin: 0;">
+            <li>Sales processing will be <strong>disabled</strong></li>
+            <li>Inventory management will be <strong>locked</strong></li>
+            <li>Airtime & data sales will be <strong>suspended</strong></li>
+            <li>Your data will be <strong>preserved</strong> (not deleted)</li>
+          </ul>
+        </div>
+
+        ${ctaButton('Renew Now — R55/month', (data?.appUrl || 'https://kasi-point-of-sale.vercel.app') + '/subscription')}
+
+        <p style="color: #999; font-size: 13px; margin-top: 24px;">
+          Need help? Reply to this email or contact support. We're here to help keep your business running.
+        </p>
+      `),
+    },
+
+    // ─── ACCOUNT SUSPENDED ──────────────────────────────────────
+    'account-suspended': {
+      subject: `🚫 Account Suspended — Kasi P.O.S`,
+      html: baseLayout(`
+        <h1 style="color: #1a1a2e; font-size: 28px; margin: 0 0 8px;">
+          Account Suspended 🚫
+        </h1>
+        <p style="color: #666; font-size: 16px; margin: 0 0 32px;">
+          Your Kasi P.O.S subscription has been suspended due to non-payment.
+        </p>
+
+        <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+          <p style="margin: 0; font-weight: 600; color: #991b1b;">Features Disabled</p>
+          <p style="margin: 8px 0 0; color: #b91c1c; font-size: 14px;">
+            Business: <strong>${data?.businessName || 'Your Store'}</strong><br/>
+            Suspended Since: <strong>${data?.suspendedDate || new Date().toLocaleDateString('en-ZA')}</strong>
+          </p>
+        </div>
+
+        <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+          <p style="margin: 0 0 8px; font-weight: 600; color: #1a1a2e; font-size: 15px;">What's locked:</p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px 0; color: #ef4444; font-size: 14px;">❌ Sales & Transactions</td>
+              <td style="padding: 6px 0; color: #ef4444; font-size: 14px;">❌ Inventory Management</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #ef4444; font-size: 14px;">❌ Airtime & Data Sales</td>
+              <td style="padding: 6px 0; color: #ef4444; font-size: 14px;">❌ User Management</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #22c55e; font-size: 14px;" colspan="2">✅ Your data is safe — reports & history remain accessible</td>
+            </tr>
+          </table>
+        </div>
+
+        <p style="color: #444; font-size: 14px; line-height: 1.6; text-align: center;">
+          <strong>Reactivate instantly</strong> by making a payment. All features will be restored immediately.
+        </p>
+
+        ${ctaButton('Reactivate — R55/month', (data?.appUrl || 'https://kasi-point-of-sale.vercel.app') + '/subscription')}
+      `),
+    },
+
+    // ─── FIRST LOGIN ────────────────────────────────────────────
+    'first-login': {
+      subject: `🎯 Quick Start Guide — Kasi P.O.S`,
+      html: baseLayout(`
+        <h1 style="color: #1a1a2e; font-size: 28px; margin: 0 0 8px;">
+          Let's Get Selling! 🎯
+        </h1>
+        <p style="color: #666; font-size: 16px; margin: 0 0 32px;">
+          Welcome to your first day on Kasi P.O.S, <strong>${data?.username || 'Boss'}</strong>. Here's how to get started.
+        </p>
+
+        <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+          <p style="margin: 0; font-weight: 600; color: #166534;">🏪 ${data?.businessName || 'Your Store'} is ready</p>
+          <p style="margin: 4px 0 0; color: #15803d; font-size: 14px;">
+            Role: <strong>${data?.role || 'admin'}</strong> • Trial: <strong>${data?.trialDaysLeft || '90'} days left</strong>
+          </p>
+        </div>
+
+        <h2 style="font-size: 16px; color: #1a1a2e; margin: 0 0 16px;">Quick Start Checklist:</h2>
+
+        <div style="margin-bottom: 24px;">
+          <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+            <span style="background: #eff6ff; color: #2563eb; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">1</span>
+            <div>
+              <p style="margin: 0; font-weight: 600; color: #1a1a2e; font-size: 14px;">Add Your Products</p>
+              <p style="margin: 2px 0 0; color: #666; font-size: 13px;">Go to Inventory → Add products with names, prices, and barcodes</p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+            <span style="background: #eff6ff; color: #2563eb; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">2</span>
+            <div>
+              <p style="margin: 0; font-weight: 600; color: #1a1a2e; font-size: 14px;">Make Your First Sale</p>
+              <p style="margin: 2px 0 0; color: #666; font-size: 13px;">Go to Sales → Search or scan products → Complete the transaction</p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+            <span style="background: #eff6ff; color: #2563eb; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">3</span>
+            <div>
+              <p style="margin: 0; font-weight: 600; color: #1a1a2e; font-size: 14px;">Add Your Team</p>
+              <p style="margin: 2px 0 0; color: #666; font-size: 13px;">Go to Users → Add cashiers so your staff can log in</p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 0;">
+            <span style="background: #eff6ff; color: #2563eb; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">4</span>
+            <div>
+              <p style="margin: 0; font-weight: 600; color: #1a1a2e; font-size: 14px;">Customize Your Branding</p>
+              <p style="margin: 2px 0 0; color: #666; font-size: 13px;">Go to Settings → Add your logo, receipt header, and business details</p>
+            </div>
+          </div>
+        </div>
+
+        ${ctaButton('Open Kasi P.O.S', data?.appUrl || 'https://kasi-point-of-sale.vercel.app')}
+
+        <p style="color: #999; font-size: 13px; margin-top: 24px; text-align: center;">
+          Need help? Reply to this email anytime — we love helping businesses grow.
+        </p>
+      `),
+    },
+
+    // ─── SUBSCRIPTION RENEWAL REMINDER ──────────────────────────
+    'renewal-reminder': {
+      subject: `📅 Subscription Renewing Soon — Kasi P.O.S`,
+      html: baseLayout(`
+        <h1 style="color: #1a1a2e; font-size: 28px; margin: 0 0 8px;">
+          Renewal Reminder 📅
+        </h1>
+        <p style="color: #666; font-size: 16px; margin: 0 0 32px;">
+          Your Kasi P.O.S Pro subscription renews in <strong>${data?.daysUntilRenewal || '3'} days</strong>.
+        </p>
+
+        <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+          <p style="margin: 0; font-weight: 600; color: #1e40af;">Upcoming Charge</p>
+          <p style="margin: 8px 0 0; color: #1d4ed8; font-size: 14px;">
+            Amount: <strong>R${data?.amount || '55.00'}</strong><br/>
+            Renewal Date: <strong>${data?.renewalDate || '—'}</strong><br/>
+            Plan: <strong>Pro Monthly</strong>
+          </p>
+        </div>
+
+        <p style="color: #444; font-size: 14px; line-height: 1.6;">
+          No action needed — your subscription will renew automatically. Make sure your payment method is up to date to avoid any interruption.
+        </p>
+
+        ${ctaButton('Manage Subscription', (data?.appUrl || 'https://kasi-point-of-sale.vercel.app') + '/subscription')}
+      `),
+    },
   };
 
   return templates[template] || null;

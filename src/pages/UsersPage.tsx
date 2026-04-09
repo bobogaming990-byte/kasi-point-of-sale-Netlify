@@ -9,6 +9,9 @@ import { UserPlus, Trash2, Shield, User as UserIcon, Users, ClipboardList, Monit
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { auditLog } from "@/lib/audit-logger";
+import { emailService } from "@/lib/email-service";
+import { companyStore } from "@/lib/company-store";
+import { storeCode } from "@/lib/store-code";
 import ActivityLog from "@/components/ActivityLog";
 import DevicesTab from "@/components/DevicesTab";
 
@@ -43,6 +46,19 @@ export default function UsersPage() {
     all.push(newUser);
     store.setUsers(all);
     auditLog({ action_type: 'USER_ADDED', module_name: 'Users', description: `Cashier "${form.username}" added`, item_name: form.username, reference_id: String(id), new_value: 'role: cashier' });
+
+    // Send new-user email (non-blocking)
+    const company = companyStore.get();
+    if (company.email) {
+      emailService.sendNewUser({
+        to: company.email,
+        username: form.username.trim().toLowerCase(),
+        role: 'cashier',
+        businessName: company.businessName || 'Kasi P.O.S',
+        storeCode: storeCode.generate(form.username),
+      });
+    }
+
     setForm({ username: "", password: "" });
     refresh();
     toast.success(`Cashier "${form.username}" added`);

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { store } from '@/lib/store';
 import { auditLog } from '@/lib/audit-logger';
+import { runEmailScheduler } from '@/lib/email-scheduler';
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -37,6 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (result.success) {
       setAuth({ username, role: result.role! });
       auditLog({ action_type: 'USER_LOGIN', module_name: 'Auth', description: `${username} logged in`, username, user_role: result.role!, status: 'success' });
+      // Run email notifications (non-blocking)
+      setTimeout(() => runEmailScheduler(username, result.role!), 1000);
       return true;
     }
     auditLog({ action_type: 'LOGIN_FAILED', module_name: 'Auth', description: `Failed login attempt for "${username}"`, username, user_role: 'unknown', status: 'failed' });

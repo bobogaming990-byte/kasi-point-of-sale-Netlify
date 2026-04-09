@@ -118,7 +118,7 @@ export default function Subscription() {
         setSub(subscriptionStore.get());
         toast.success('Payment successful! Your subscription is now active.');
 
-        // Send payment success email
+        // Send payment success + subscription active emails
         const email = company.email || `${username}@kasi-pos.app`;
         emailService.sendPaymentSuccess({
           to: email,
@@ -126,6 +126,10 @@ export default function Subscription() {
           reference,
           date: new Date().toLocaleDateString('en-ZA'),
           nextRenewal: new Date(Date.now() + 30 * 86400000).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' }),
+        });
+        emailService.sendSubscriptionActive({
+          to: email,
+          businessName: company.businessName || 'Your Store',
         });
       } else if (data.demo && isAdmin) {
         setShowDemo(true);
@@ -146,6 +150,19 @@ export default function Subscription() {
           date: new Date().toLocaleDateString('en-ZA'),
           reason: statusMsg,
         });
+
+        // If entering grace period, send grace period warning
+        const updatedSub = subscriptionStore.get();
+        if (updatedSub.subscription_status === 'grace_period') {
+          emailService.sendGracePeriod({
+            to: email,
+            businessName: company.businessName || 'Your Store',
+            graceDaysLeft: subscriptionStore.getGraceDaysLeft(),
+            graceEndDate: updatedSub.grace_period_end
+              ? new Date(updatedSub.grace_period_end).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })
+              : '—',
+          });
+        }
       }
     } catch {
       toast.error('Could not verify payment. Please refresh the page.');

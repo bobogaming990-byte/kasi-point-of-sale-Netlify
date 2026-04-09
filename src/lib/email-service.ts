@@ -1,4 +1,4 @@
-// Email Service - Sends transactional emails via Netlify Function
+// Email Service - Sends transactional emails via Vercel Serverless Function
 // Uses Resend behind the scenes, configured via RESEND_API_KEY env var
 
 type EmailTemplate =
@@ -9,7 +9,11 @@ type EmailTemplate =
   | 'trial-expiring'
   | 'subscription-active'
   | 'password-reset'
-  | 'daily-report';
+  | 'daily-report'
+  | 'grace-period'
+  | 'account-suspended'
+  | 'first-login'
+  | 'renewal-reminder';
 
 interface SendEmailParams {
   template: EmailTemplate;
@@ -193,6 +197,79 @@ export const emailService = {
         transactions: String(params.transactions),
         returns: String(params.returns),
         lowStock: String(params.lowStock),
+      },
+    });
+  },
+
+  /**
+   * Send grace period warning when payment fails on active subscription
+   */
+  async sendGracePeriod(params: {
+    to: string;
+    businessName: string;
+    graceDaysLeft: number;
+    graceEndDate: string;
+  }): Promise<boolean> {
+    return sendEmail({
+      template: 'grace-period',
+      to: params.to,
+      data: {
+        ...params,
+        graceDaysLeft: String(params.graceDaysLeft),
+      },
+    });
+  },
+
+  /**
+   * Send account suspended notification
+   */
+  async sendAccountSuspended(params: {
+    to: string;
+    businessName: string;
+    suspendedDate: string;
+  }): Promise<boolean> {
+    return sendEmail({
+      template: 'account-suspended',
+      to: params.to,
+      data: params,
+    });
+  },
+
+  /**
+   * Send first-login quick start guide
+   */
+  async sendFirstLogin(params: {
+    to: string;
+    username: string;
+    businessName: string;
+    role: string;
+    trialDaysLeft: number;
+  }): Promise<boolean> {
+    return sendEmail({
+      template: 'first-login',
+      to: params.to,
+      data: {
+        ...params,
+        trialDaysLeft: String(params.trialDaysLeft),
+      },
+    });
+  },
+
+  /**
+   * Send subscription renewal reminder
+   */
+  async sendRenewalReminder(params: {
+    to: string;
+    daysUntilRenewal: number;
+    renewalDate: string;
+    amount: string;
+  }): Promise<boolean> {
+    return sendEmail({
+      template: 'renewal-reminder',
+      to: params.to,
+      data: {
+        ...params,
+        daysUntilRenewal: String(params.daysUntilRenewal),
       },
     });
   },
