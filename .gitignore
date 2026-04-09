@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Kasi P.O.S server-side data (contains payment records — do not commit)
+.kasi-subscription-data/
+
+# Environment variables — never commit real secrets
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +28,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local Netlify folder
+.netlify

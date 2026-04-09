@@ -1,0 +1,4 @@
+# Netlify Redirects for SPA routing
+# Netlify Functions are served automatically at /.netlify/functions/*
+
+/* /index.html 200

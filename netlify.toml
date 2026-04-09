@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# SPA catch-all redirect — Netlify Functions are served automatically
+[[redirects]]
+  from = "/*"
+  to   = "/index.html"
+  status = 200

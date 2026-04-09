@@ -1,8 +1,8 @@
 import {
-  LayoutDashboard, Package, ShoppingCart, Users, CreditCard, LogOut, Store
+  LayoutDashboard, Package, ShoppingCart, Users, LogOut, Store, Palette, RotateCcw, BarChart2, CreditCard
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -10,11 +10,14 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Sales", url: "/sales", icon: ShoppingCart },
-  { title: "Inventory", url: "/inventory", icon: Package },
-  { title: "Users", url: "/users", icon: Users },
-  { title: "Subscription", url: "/subscription", icon: CreditCard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, adminOnly: false },
+  { title: "Branding", url: "/settings/branding", icon: Palette, adminOnly: true },
+  { title: "Sales", url: "/sales", icon: ShoppingCart, adminOnly: false },
+  { title: "Inventory", url: "/inventory", icon: Package, adminOnly: false },
+  { title: "Users", url: "/users", icon: Users, adminOnly: false },
+  { title: "Returns",    url: "/returns",    icon: RotateCcw,  adminOnly: false },
+  { title: "Accounting",   url: "/accounting",   icon: BarChart2,   adminOnly: true },
+  { title: "Subscription", url: "/subscription", icon: CreditCard, adminOnly: true },
 ];
 
 export function AppSidebar() {
@@ -26,8 +29,8 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarContent className="flex flex-col h-full">
-        {/* Brand */}
-        <div className="p-4 flex items-center gap-3">
+        {/* Brand — click to go to Setup */}
+        <Link to="/setup" className="p-4 flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
             <Store className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
@@ -37,13 +40,13 @@ export function AppSidebar() {
               <p className="text-xs text-sidebar-foreground/60">Point of Sale</p>
             </div>
           )}
-        </div>
+        </Link>
 
         {/* Nav */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {items.filter(item => !item.adminOnly || role === 'admin').map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink

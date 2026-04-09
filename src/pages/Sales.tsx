@@ -1,12 +1,17 @@
 import { useState, useMemo, useRef } from "react";
 import { store, Product, CartItem } from "@/lib/store";
 import { useAuth } from "@/contexts/AuthContext";
+import { subscriptionStore } from "@/lib/subscription-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Check, ShieldAlert } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Check, ShieldAlert, Wifi, Package } from "lucide-react";
 import { toast } from "sonner";
+import PrepaidPanel from "@/components/prepaid/PrepaidPanel";
+import { cn } from "@/lib/utils";
+import { auditLog } from "@/lib/audit-logger";
+import { printSaleReceipt } from "@/lib/receipt-printer";
 
 export default function Sales() {
   const { username, role } = useAuth();
@@ -14,6 +19,7 @@ export default function Sales() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [vat, setVat] = useState(false);
+  const [activeTab, setActiveTab] = useState<"products" | "prepaid">("products");
 
   // Admin auth dialog state
   const [showAdminAuth, setShowAdminAuth] = useState(false);
@@ -70,10 +76,12 @@ export default function Sales() {
       pendingActionRef.current = null;
       setShowAdminAuth(false);
       toast.success("Admin authorized — item removed");
+      auditLog({ action_type: 'ADMIN_OVERRIDE', module_name: 'Sales', description: `Admin "${adminUser}" authorized cart item removal for cashier "${username}"`, username: adminUser, user_role: 'admin' });
     } else {
       // Restore the original session auth in case login overwrote it
       store.setAuth({ username, role });
       setAuthError("Invalid admin credentials");
+      auditLog({ action_type: 'ADMIN_OVERRIDE', module_name: 'Sales', description: `Failed admin override attempt — invalid credentials for "${adminUser}"`, username: adminUser, user_role: 'admin', status: 'failed' });
     }
   };
 
@@ -108,6 +116,13 @@ export default function Sales() {
 
   const handleCheckout = () => {
     if (cart.length === 0) return;
+    const access = subscriptionStore.checkAccess('sales');
+    if (!access.allowed) {
+      toast.error(access.reason!, {
+        action: { label: 'Subscribe Now', onClick: () => { window.location.href = '/subscription'; } },
+      });
+      return;
+    }
     // Trial enforcement: max 5 sales/day after trial expires
     if (store.isTrialExpired()) {
       const todaySales = store.getSales().filter(s => s.date === new Date().toISOString().slice(0, 10));
@@ -117,6 +132,16 @@ export default function Sales() {
       }
     }
     const saleId = store.addSale(cart, total, username);
+    auditLog({ action_type: 'SALE_COMPLETED', module_name: 'Sales', description: `Sale #${saleId} — ${cart.length} item(s) totalling R ${total.toFixed(2)}`, reference_id: String(saleId), quantity: cart.reduce((s, i) => s + i.quantity, 0), new_value: `R ${total.toFixed(2)}` });
+    printSaleReceipt({
+      saleId,
+      items: cart.map(i => ({ name: i.name, quantity: i.quantity, price: i.price })),
+      subtotal,
+      vatAmount: subtotal * 0.15,
+      total,
+      vatEnabled: vat,
+      cashier: username,
+    });
     toast.success(`Sale #${saleId} completed — R ${total.toFixed(2)}`);
     setCart([]);
   };
@@ -125,32 +150,66 @@ export default function Sales() {
     <div className="animate-fade-in h-full">
       <h1 className="text-2xl font-bold mb-4">Sales</h1>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-12rem)]">
-        {/* Products panel */}
+        {/* Left panel — Products or Prepaid */}
         <div className="lg:col-span-3 flex flex-col min-h-0">
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products or scan barcode..."
-              className="pl-10"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              autoFocus
-            />
+          {/* Tab switcher */}
+          <div className="flex rounded-lg bg-muted p-1 gap-1 mb-4">
+            <button
+              onClick={() => setActiveTab("products")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-colors",
+                activeTab === "products"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Package className="w-4 h-4" /> Products
+            </button>
+            <button
+              onClick={() => setActiveTab("prepaid")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-colors",
+                activeTab === "prepaid"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Wifi className="w-4 h-4" /> Prepaid Services
+            </button>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto flex-1 pr-1">
-            {filtered.map(p => (
-              <button
-                key={p.id}
-                onClick={() => addToCart(p)}
-                className="bg-card rounded-xl p-4 text-left shadow-sm hover:shadow-md hover:ring-2 hover:ring-primary/30 transition-all group"
-              >
-                <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate">{p.name}</p>
-                <p className="text-lg font-bold text-primary mt-1">R {p.price.toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground">Stock: {p.stock}</p>
-              </button>
-            ))}
-          </div>
+
+          {activeTab === "products" ? (
+            <>
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search products or scan barcode..."
+                  className="pl-10"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  autoFocus
+                />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto flex-1 pr-1">
+                {filtered.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => addToCart(p)}
+                    className="bg-card rounded-xl p-4 text-left shadow-sm hover:shadow-md hover:ring-2 hover:ring-primary/30 transition-all group"
+                  >
+                    <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate">{p.name}</p>
+                    <p className="text-lg font-bold text-primary mt-1">R {p.price.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">Stock: {p.stock}</p>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <PrepaidPanel cashier={username} />
+            </div>
+          )}
         </div>
 
         {/* Cart panel */}

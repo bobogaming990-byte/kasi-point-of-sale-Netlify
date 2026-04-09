@@ -1,13 +1,17 @@
 import { useState, useCallback } from "react";
 import { store, Product } from "@/lib/store";
 import { useAuth } from "@/contexts/AuthContext";
+import { subscriptionStore } from "@/lib/subscription-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Search, Package, AlertTriangle, ScanBarcode, Plus } from "lucide-react";
+import { Trash2, Search, Package, AlertTriangle, ScanBarcode, Plus, RefreshCw, Tag } from "lucide-react";
 import { toast } from "sonner";
 import AddProductModal from "@/components/AddProductModal";
+import BarcodeLabelModal from "@/components/BarcodeLabelModal";
+import { auditLog } from "@/lib/audit-logger";
+import { generateBarcodeValue } from "@/lib/barcode-utils";
 
 export default function Inventory() {
   const { role } = useAuth();
@@ -16,6 +20,7 @@ export default function Inventory() {
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [pendingBarcode, setPendingBarcode] = useState("");
+  const [labelProduct, setLabelProduct] = useState<Product | null>(null);
 
   const refresh = useCallback(() => setProducts(store.getProducts()), []);
 
@@ -38,7 +43,11 @@ export default function Inventory() {
     if (match) {
       toast.success(`Found: ${match.name}`);
     } else {
-      // New barcode — open the add modal
+      const access = subscriptionStore.checkAccess('inventory');
+      if (!access.allowed) {
+        toast.error(access.reason!, { action: { label: 'Subscribe Now', onClick: () => { window.location.href = '/subscription'; } } });
+        return;
+      }
       setPendingBarcode(barcode);
       setShowAddModal(true);
       setSearch("");
@@ -47,6 +56,11 @@ export default function Inventory() {
   };
 
   const handleSaveProduct = (product: Omit<Product, "id">) => {
+    const access = subscriptionStore.checkAccess('inventory');
+    if (!access.allowed) {
+      toast.error(access.reason!, { action: { label: 'Subscribe Now', onClick: () => { window.location.href = '/subscription'; } } });
+      return;
+    }
     try {
       const all = store.getProducts();
       const barcodeExists = all.some(p => p.barcode === product.barcode);
@@ -59,6 +73,7 @@ export default function Inventory() {
       const id = all.length > 0 ? Math.max(...all.map(p => p.id)) + 1 : 1;
       all.push({ id, ...product });
       store.setProducts(all);
+      auditLog({ action_type: 'PRODUCT_ADDED', module_name: 'Inventory', description: `Product "${product.name}" added to inventory`, item_name: product.name, reference_id: String(id), quantity: product.stock, new_value: `Price: R${product.price.toFixed(2)}, Stock: ${product.stock}` });
       setShowAddModal(false);
       setPendingBarcode("");
       refresh();
@@ -68,9 +83,30 @@ export default function Inventory() {
     }
   };
 
+  const handleGenerateBarcode = (id: number) => {
+    const all = store.getProducts();
+    const product = all.find(p => p.id === id);
+    if (!product) return;
+    const code = generateBarcodeValue(product.name);
+    const updated = all.map(p =>
+      p.id === id
+        ? { ...p, barcode: code, barcode_generated: true, barcode_created_at: new Date().toISOString() }
+        : p
+    );
+    store.setProducts(updated);
+    auditLog({ action_type: 'PRODUCT_EDITED', module_name: 'Inventory', description: `Barcode generated for "${product.name}": ${code}`, item_name: product.name, reference_id: String(id), new_value: code });
+    refresh();
+    toast.success(`Barcode generated: ${code}`);
+  };
+
   const handleDelete = (id: number) => {
+    const product = store.getProducts().find(p => p.id === id);
     const all = store.getProducts().filter(p => p.id !== id);
     store.setProducts(all);
+    if (product) {
+      const wasExpired = isExpired(product);
+      auditLog({ action_type: wasExpired ? 'EXPIRED_REMOVED' : 'PRODUCT_DELETED', module_name: 'Inventory', description: `${wasExpired ? 'Expired product' : 'Product'} "${product.name}" removed from inventory`, item_name: product.name, reference_id: String(id), previous_value: `Stock: ${product.stock}` });
+    }
     toast.success("Product removed");
     refresh();
   };
@@ -171,7 +207,33 @@ export default function Inventory() {
                       {lowStock && <AlertTriangle className="w-3 h-3 text-destructive inline ml-1" />}
                     </td>
                     <td className="p-3 text-muted-foreground">{p.supplier.name}</td>
-                    <td className="p-3 font-mono text-xs text-muted-foreground">{p.barcode}</td>
+                    <td className="p-3">
+                      {p.barcode ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-xs text-muted-foreground truncate max-w-[130px]" title={p.barcode}>{p.barcode}</span>
+                          {p.barcode_generated && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 border-primary/40 text-primary shrink-0">gen</Badge>
+                          )}
+                          <button
+                            onClick={() => setLabelProduct(p)}
+                            className="ml-0.5 text-muted-foreground hover:text-primary transition-colors shrink-0"
+                            title="Print barcode label"
+                          >
+                            <Tag className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : isAdmin ? (
+                        <button
+                          onClick={() => handleGenerateBarcode(p.id)}
+                          className="flex items-center gap-1 text-xs text-primary hover:underline"
+                          title="Generate a barcode for this product"
+                        >
+                          <RefreshCw className="w-3 h-3" /> Generate
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/50 italic">No barcode</span>
+                      )}
+                    </td>
                     <td className="p-3">
                       {p.not_expiring ? (
                         <Badge variant="outline" className="text-xs">No expiry</Badge>
@@ -205,6 +267,17 @@ export default function Inventory() {
           </table>
         </div>
       </Card>
+
+      {/* Barcode Label Modal */}
+      {labelProduct && (
+        <BarcodeLabelModal
+          open={Boolean(labelProduct)}
+          onClose={() => setLabelProduct(null)}
+          productName={labelProduct.name}
+          barcode={labelProduct.barcode}
+          price={labelProduct.price}
+        />
+      )}
 
       {/* Add Product Modal */}
       <AddProductModal
