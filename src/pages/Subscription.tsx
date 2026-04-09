@@ -77,7 +77,7 @@ export default function Subscription() {
   async function handleUpgrade() {
     setLoading(true);
     try {
-      const res  = await fetch('/.netlify/functions/paystack-initialize', {
+      const res  = await fetch('/api/paystack-initialize', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
@@ -106,7 +106,7 @@ export default function Subscription() {
   // ── Paystack: verify transaction after redirect ──────────────────────────────
   async function verifyPayment(reference: string) {
     try {
-      const res  = await fetch('/.netlify/functions/paystack-verify', {
+      const res  = await fetch('/api/paystack-verify', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ company_id: sub.company_id, reference }),

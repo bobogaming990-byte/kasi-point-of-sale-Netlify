@@ -28,7 +28,7 @@ async function sendEmail({ template, to, data }: SendEmailParams): Promise<boole
     // Add app URL to all emails
     data.appUrl = data.appUrl || APP_URL;
 
-    const res = await fetch('/.netlify/functions/send-email', {
+    const res = await fetch('/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ template, to, data }),
